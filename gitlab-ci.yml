@@ -1,0 +1,104 @@
+image: charlesFeng/docker-git-yarn
+variables:
+  # Please edit to your GitLab project
+  REPO_NAME: user-server
+  TECENT_LOCAL_HOST: ccr.ccs.tencentyun.com
+  TENCENT_LOGIN_USER: 100009392201
+  TENCENT_LOGIN_PASSWORD: kuipmake123456
+  TENCENT_NAMESPACE: kuipmake
+  IMAGE_TAG: latest
+  IMAGE_NAME: $TECENT_LOCAL_HOST/$TENCENT_NAMESPACE/$REPO_NAME:$IMAGE_TAG
+  MASTER_REPO_NAME: shop-server
+  DEV_REPO_NAME: shop-server
+  MASTER_LOCAL_HOST: 
+  MASTER_LOGIN_USER: 
+  MASTER_LOGIN_PASSWORD: 
+  DEV_LOCAL_HOST: 192.168.18.125
+  DEV_LOGIN_USER: kuip
+  DEV_LOGIN_PASSWORD: 123456
+  MASTER_IMAGE_TAG: latest
+  MASTER_IMAGE_NAME: $REPO_NAME:$IMAGE_TAG
+
+before_script:
+  - docker info
+  #- echo $TENCENT_LOGIN_PASSWORD | docker login -u TENCENT_LOGIN_USER --password-stdin $TECENT_LOCAL_HOST
+
+stages:
+  - build-master
+  - import-api-document-master
+  - run-master
+  - build-dev
+  - import-api-document-dev
+  - run-dev
+
+build-master:
+  stage: build-master
+  script:
+    - echo kuipmake123456 | docker login -u 100009392201 --password-stdin ccr.ccs.tencentyun.com
+    - cd $CI_PROJECT_DIR
+    - docker build -t $IMAGE_NAME .
+    - docker push $IMAGE_NAME
+  only:
+    - master
+
+build-dev:
+  stage:build-dev
+  script:
+    - echo kuipmake123456 | docker login -u 100009392201 --password-stdin ccr.ccs.tencentyun.com
+    - cd $CI_PROJECT_DIR
+    - docker build -t $IMAGE_NAME .
+    - docker push $IMAGE_NAME
+  only:
+    - dev
+
+import-api-document-master:
+  stage: import-api-document-master
+  script:
+    - yarn global add yapi-cli
+    - cp docs/swagger/swagger.json ./
+    - yapi import
+  only:
+    - master
+
+import-api-document-dev:
+  stage: import-api-document-dev
+  script:
+    - yarn global add yapi-cli
+    - cp docs/swagger/swagger.json ./
+    - yapi import
+  only:
+    - dev
+
+run-master:
+  stage: run-master
+  script:
+    # 启动服务
+    - eval $(ssh-agent -s)
+    # 将私钥写入deploy.key 文件
+    - echo "$SSH_PRIVATE_KEY" > deploy.key
+    # 配置较低权限
+    - chmod 0600 deploy.key
+    # 注入密钥
+    - ssh-add deploy.key
+    - mkdir -p ~/.ssh
+    - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+    - ssh ubuntu@ "echo kuipmake123456 | docker login -u 100009392201 --password-stdin ccr.ccs.tencentyun.com && cd /usr/local/src/star/ && docker-compose pull star-shop-server && docker-compose up -d star-shop-server"
+  only:
+    - master
+
+run-dev:
+  stage: run-dev
+  script:
+    # 启动服务
+    - eval $(ssh-agent -s)
+    # 将私钥写入deploy.key 文件
+    - echo "$SSH_PRIVATE_KEY" > deploy.key
+    # 配置较低权限
+    - chmod 0600 deploy.key
+    # 注入密钥
+    - ssh-add deploy.key
+    - mkdir -p ~/.ssh
+    - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+    - ssh ubuntu@ "echo kuipmake123456 | docker login -u 100009392201 --password-stdin ccr.ccs.tencentyun.com && cd /usr/local/src/star/ && docker-compose pull star-shop-server && docker-compose up -d star-shop-server"
+  only:
+    - dev
