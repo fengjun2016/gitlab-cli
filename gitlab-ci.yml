@@ -24,15 +24,17 @@ before_script:
   #- echo $TENCENT_LOGIN_PASSWORD | docker login -u TENCENT_LOGIN_USER --password-stdin $TECENT_LOCAL_HOST
 
 stages:
-  - build-master
-  - import-api-document-master
-  - run-master
+  - build
+  - import-api-document
+  - run
+
+stages:
   - build-dev
   - import-api-document-dev
   - run-dev
 
 build-master:
-  stage: build-master
+  stage: build
   script:
     - echo kuipmake123456 | docker login -u 100009392201 --password-stdin ccr.ccs.tencentyun.com
     - cd $CI_PROJECT_DIR
@@ -42,7 +44,7 @@ build-master:
     - master
 
 build-dev:
-  stage:build-dev
+  stage:build
   script:
     - echo kuipmake123456 | docker login -u 100009392201 --password-stdin ccr.ccs.tencentyun.com
     - cd $CI_PROJECT_DIR
@@ -52,7 +54,7 @@ build-dev:
     - dev
 
 import-api-document-master:
-  stage: import-api-document-master
+  stage: import-api-document
   script:
     - yarn global add yapi-cli
     - cp docs/swagger/swagger.json ./
@@ -61,7 +63,7 @@ import-api-document-master:
     - master
 
 import-api-document-dev:
-  stage: import-api-document-dev
+  stage: import-api-document
   script:
     - yarn global add yapi-cli
     - cp docs/swagger/swagger.json ./
@@ -70,7 +72,7 @@ import-api-document-dev:
     - dev
 
 run-master:
-  stage: run-master
+  stage: run
   script:
     # 启动服务
     - eval $(ssh-agent -s)
@@ -87,7 +89,7 @@ run-master:
     - master
 
 run-dev:
-  stage: run-dev
+  stage: run
   script:
     # 启动服务
     - eval $(ssh-agent -s)
